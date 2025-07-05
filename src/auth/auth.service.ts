@@ -2,7 +2,9 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto, AuthResponse } from './dto/auth.dto';
@@ -11,27 +13,28 @@ import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
     const { email, password, nom, prenom } = registerDto;
 
-    // Vérifier si l'utilisateur existe déjà
+    const normalizedEmail = email.toLowerCase().trim();
     const existingUser = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
+      this.logger.warn(
+        `Registration attempt with existing email: ${normalizedEmail}`,
+      );
       throw new ConflictException('Un utilisateur avec cet email existe déjà');
     }
-
-    // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Créer l'utilisateur
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -40,7 +43,7 @@ export class AuthService {
         password: hashedPassword,
       },
     });
-
+    this.logger.log(`New user registered: ${normalizedEmail}`);
     return {
       user: {
         id: user.id,
@@ -52,23 +55,35 @@ export class AuthService {
     };
   }
 
+
   async login(loginDto: LoginDto): Promise<AuthResponse> {
     const { email, password } = loginDto;
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Trouver l'utilisateur
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user || !user.isActive) {
+      this.logger.warn(`Failed login attempt for email: ${normalizedEmail}`, {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
       throw new UnauthorizedException('Identifiants invalides');
     }
 
     // Vérifier le mot de passe
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      this.logger.warn(`Invalid password for email: ${normalizedEmail}`, {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
       throw new UnauthorizedException('Identifiants invalides');
     }
+
+    this.logger.log(`Successful login for email: ${normalizedEmail}`);
 
     return {
       user: {
@@ -80,6 +95,7 @@ export class AuthService {
       },
     };
   }
+
 
   async generateTokens(
     userId: string,
@@ -88,12 +104,12 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_ACCESS_SECRET,
-        expiresIn: process.env.JWT_ACCESS_EXPIRATION,
+        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRATION'),
       }),
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: process.env.JWT_REFRESH_EXPIRATION,
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
       }),
     ]);
 
@@ -160,12 +176,21 @@ export class AuthService {
     });
   }
 
-  setTokensCookies(response: Response, accessToken: string, refreshToken: string): void {
+  setTokensCookies(
+    response: Response,
+    accessToken: string,
+    refreshToken: string,
+  ): void {
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
+    const cookieDomain = this.configService.get<string>('COOKIE_DOMAIN');
+
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction, // HTTPS obligatoire en production
       sameSite: 'strict' as const,
       path: '/',
+      ...(cookieDomain && { domain: cookieDomain }),
     };
 
     // Access token (courte durée)
@@ -180,6 +205,8 @@ export class AuthService {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
     });
   }
+
+
 
   clearTokensCookies(response: Response): void {
     response.clearCookie('accessToken', { path: '/' });

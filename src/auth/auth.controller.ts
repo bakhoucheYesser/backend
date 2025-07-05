@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Get,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, AuthResponse } from './dto/auth.dto';
@@ -20,13 +21,16 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute
   async register(
     @Body() registerDto: RegisterDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
     const result = await this.authService.register(registerDto);
 
-    const { accessToken, refreshToken } = await this.authService.generateTokens(result.user.id);
+    const { accessToken, refreshToken } = await this.authService.generateTokens(
+      result.user.id,
+    );
 
     this.authService.setTokensCookies(response, accessToken, refreshToken);
 
@@ -35,6 +39,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
@@ -42,7 +47,9 @@ export class AuthController {
   ): Promise<AuthResponse> {
     const result = await this.authService.login(loginDto);
 
-    const { accessToken, refreshToken } = await this.authService.generateTokens(result.user.id);
+    const { accessToken, refreshToken } = await this.authService.generateTokens(
+      result.user.id,
+    );
 
     this.authService.setTokensCookies(response, accessToken, refreshToken);
 
