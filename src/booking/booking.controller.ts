@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { BookingService } from './booking.service';
-import { TimeSlotService } from './services/time-slot.service';
+import { TimeSlotService, TimeSlot } from './services/time-slot.service'; // ✅ FIXED: Import TimeSlot type
 import {
   CreateBookingDto,
   UpdateBookingDto,
@@ -42,7 +42,11 @@ export class BookingController {
   // Obtenir les créneaux disponibles
   @Public()
   @Get('availability/slots')
-  async getAvailableTimeSlots(@Query() query: TimeSlotQueryDto) {
+  async getAvailableTimeSlots(@Query() query: TimeSlotQueryDto): Promise<{
+    date: string;
+    slots: TimeSlot[];
+    timezone: string;
+  }> {  // ✅ FIXED: Added explicit return type
     return this.timeSlotService.getAvailableSlots(
       query.date,
       query.vehicleType,

@@ -1,10 +1,10 @@
+// src/upload/dto/upload.dto.ts - VERSION CORRIGÉE
 import {
   IsNotEmpty,
   IsString,
   IsOptional,
   IsEnum,
   IsArray,
-  IsUUID,
 } from 'class-validator';
 
 export enum FileCategory {
@@ -24,11 +24,11 @@ export class UploadMetadataDto {
   description?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   bookingId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   estimateId?: string;
 }
 

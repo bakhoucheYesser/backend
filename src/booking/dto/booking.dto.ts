@@ -9,6 +9,7 @@ import {
   IsUUID,
   ValidateNested,
   IsEnum,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -22,7 +23,10 @@ export enum BookingStatus {
 
 export class CreateBookingDto {
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
+  @Matches(/^c[a-z0-9]{24}$/, {
+    message: 'estimateId must be a valid ID format',
+  })
   estimateId: string;
 
   @IsNotEmpty()

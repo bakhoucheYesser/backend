@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-// ✅ FIX: Définir les types pour les slots
-interface TimeSlot {
+// ✅ EXPORTED - Now the interface can be used in other files
+export interface TimeSlot {
   time: string;
   available: boolean;
   demandLevel: 'low' | 'medium' | 'high';
   surgeMultiplier: number;
 }
 
-interface BusyHour {
+export interface BusyHour {
   hour: number;
   bookingCount: number;
   surgeActive: boolean;
@@ -44,13 +44,11 @@ export class TimeSlotService {
       },
     });
 
-    // ✅ FIX: Typer correctement le tableau slots
     const slots: TimeSlot[] = [];
     for (let hour = 8; hour <= 20; hour++) {
       const slotTime = new Date(targetDate);
       slotTime.setHours(hour, 0, 0, 0);
 
-      // ✅ FIX: Vérifier que estimate existe
       const isBooked = existingBookings.some(
         (booking) =>
           booking.scheduledAt.getHours() === hour &&
@@ -92,7 +90,6 @@ export class TimeSlotService {
       },
     });
 
-    // ✅ FIX: Typer correctement hourCounts
     const hourCounts: Record<number, number> = {};
     bookings.forEach((booking) => {
       const hour = booking.scheduledAt.getHours();
@@ -102,11 +99,11 @@ export class TimeSlotService {
     return {
       date,
       busyHours: Object.entries(hourCounts)
-        .filter(([_, count]) => (count as number) >= 3) // ✅ FIX: Cast count
+        .filter(([_, count]) => (count as number) >= 3)
         .map(([hour, count]) => ({
           hour: parseInt(hour),
-          bookingCount: count as number, // ✅ FIX: Cast count
-          surgeActive: (count as number) >= 5, // ✅ FIX: Cast count
+          bookingCount: count as number,
+          surgeActive: (count as number) >= 5,
         })),
     };
   }

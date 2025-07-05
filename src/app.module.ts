@@ -10,6 +10,7 @@ import { GeocodingModule } from './geocoding/geocoding.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { EstimateModule } from './estimate/estimate.module';
 import { UploadModule } from './upload/upload.module';
+import { BookingModule } from './booking/booking.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UploadModule } from './upload/upload.module';
     GeocodingModule,
     EstimateModule,
     UploadModule,
+    BookingModule,
   ],
   controllers: [AppController],
   providers: [

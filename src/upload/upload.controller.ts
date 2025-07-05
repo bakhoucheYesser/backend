@@ -105,8 +105,8 @@ export class UploadController {
   @Get('serve/:filename')
   async serveFile(
     @Param('filename') filename: string,
+    @Res() res: Response,  // ✅ FIXED: Moved required parameter before optional ones
     @Query('thumbnail') thumbnail?: string,
-    @Res() res: Response,
   ) {
     const filePath = await this.uploadService.getFilePath(
       filename,
