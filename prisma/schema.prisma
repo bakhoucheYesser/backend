@@ -21,6 +21,7 @@ model User {
   refreshTokens RefreshToken[]
   estimates     Estimate[]
   bookings      Booking[]
+  UploadedFile  UploadedFile[]
 
   @@map("users")
 }
@@ -81,6 +82,7 @@ model Estimate {
   booking                Booking?       @relation(fields: [bookingId], references: [id])
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
+  UploadedFile           UploadedFile[]
 
   @@map("estimates")
 }
@@ -108,20 +110,21 @@ model PricingRule {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
-  estimateId    String?       @unique
+  id            String         @id @default(cuid())
+  estimateId    String?        @unique
   estimate      Estimate?
   userId        String?
-  user          User?         @relation(fields: [userId], references: [id])
+  user          User?          @relation(fields: [userId], references: [id])
   customerName  String
   customerEmail String
   customerPhone String
   scheduledAt   DateTime
-  status        BookingStatus @default(PENDING)
-  paymentStatus PaymentStatus @default(PENDING)
+  status        BookingStatus  @default(PENDING)
+  paymentStatus PaymentStatus  @default(PENDING)
   paymentId     String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  UploadedFile  UploadedFile[]
 
   @@map("bookings")
 }
@@ -140,4 +143,28 @@ enum PaymentStatus {
   CAPTURED
   FAILED
   REFUNDED
+}
+
+model UploadedFile {
+  id            String  @id @default(cuid())
+  filename      String  @unique
+  originalName  String
+  mimetype      String
+  size          Int
+  path          String
+  thumbnailPath String?
+  category      String  @default("item_photo")
+  description   String?
+  bookingId     String?
+  estimateId    String?
+  userId        String?
+
+  booking  Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  estimate Estimate? @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("uploaded_files")
 }
