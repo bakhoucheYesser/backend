@@ -52,26 +52,28 @@ export class GeocodeService {
         `https://geocode.search.hereapi.com/v1/geocode?${params}`,
         {
           timeout: 5000,
-      });
+        },
+      );
 
       return {
-        items: response.data.items?.map((item: any) => ({
+        items:
+          response.data.items?.map((item: any) => ({
             id: item.id || `generated-${Date.now()}-${Math.random()}`,
             title: item.title,
             address: {
               label: item.address?.label || item.title,
-            countryCode: item.address?.countryCode || 'CA',
-            city: item.address?.city,
-            state: item.address?.state,
-            postalCode: item.address?.postalCode,
-          },
-          position: {
-            lat: item.position?.lat || 0,
-            lng: item.position?.lng || 0,
-          },
-          resultType: item.resultType || 'address',
-          distance: item.distance,
-        })) || [],
+              countryCode: item.address?.countryCode || 'CA',
+              city: item.address?.city,
+              state: item.address?.state,
+              postalCode: item.address?.postalCode,
+            },
+            position: {
+              lat: item.position?.lat || 0,
+              lng: item.position?.lng || 0,
+            },
+            resultType: item.resultType || 'address',
+            distance: item.distance,
+          })) || [],
       };
     } catch (error) {
       console.error('HERE API Error:', error);
@@ -100,8 +102,9 @@ export class GeocodeService {
       const response = await axios.get(
         `https://router.hereapi.com/v8/routes?${params}`,
         {
-        timeout: 10000,
-      });
+          timeout: 10000,
+        },
+      );
 
       if (response.data.routes?.length > 0) {
         const route = response.data.routes[0];
@@ -110,7 +113,7 @@ export class GeocodeService {
         return {
           summary: {
             duration: section?.summary?.duration || 1800, // 30 min par défaut
-            length: section?.summary?.length || 10000,    // 10km par défaut
+            length: section?.summary?.length || 10000, // 10km par défaut
           },
           polyline: section?.polyline || '',
         };
@@ -138,7 +141,7 @@ export class GeocodeService {
           },
           position: {
             lat: 45.5017 + (Math.random() - 0.5) * 0.1,
-            lng: -73.5673 + (Math.random() - 0.5) * 0.1
+            lng: -73.5673 + (Math.random() - 0.5) * 0.1,
           },
           resultType: 'address',
         },

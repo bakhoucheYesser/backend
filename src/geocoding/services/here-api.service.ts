@@ -8,7 +8,7 @@ export class HereApiService {
 
   // URLs officielles HERE API
   private readonly geocodeUrl = 'https://geocode.search.hereapi.com/v1/geocode';
-  private readonly reverseGeocodeUrl = 'https://revgeocode.search.hereapi.com/v1/revgeocode';
+  private readonly reverseGeocodeUrl ='https://revgeocode.search.hereapi.com/v1/revgeocode';
   private readonly routingUrl = 'https://router.hereapi.com/v8/routes';
 
   constructor() {
@@ -23,7 +23,9 @@ export class HereApiService {
 
     // Validation basique du format de la clé HERE (généralement 39-43 caractères)
     if (this.apiKey.length < 20 || this.apiKey.length > 100) {
-      this.logger.warn(`HERE API key length seems unusual: ${this.apiKey.length} characters`);
+      this.logger.warn(
+        `HERE API key length seems unusual: ${this.apiKey.length} characters`,
+      );
     }
 
     this.logger.log('HERE API key configured successfully');
@@ -66,33 +68,40 @@ export class HereApiService {
       const response = await fetch(fullUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'GrandoGo/1.0'
-        }
+          Accept: 'application/json',
+          'User-Agent': 'GrandoGo/1.0',
+        },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`HERE Geocode API error: ${response.status} - ${errorText}`);
+        this.logger.error(
+          `HERE Geocode API error: ${response.status} - ${errorText}`,
+        );
 
         if (response.status === 401) {
           throw new Error('Invalid HERE API key or insufficient permissions');
         }
         if (response.status === 403) {
-          throw new Error('HERE API key access forbidden - check your key permissions');
+          throw new Error(
+            'HERE API key access forbidden - check your key permissions',
+          );
         }
         if (response.status === 429) {
           throw new Error('HERE API rate limit exceeded');
         }
 
-        throw new Error(`HERE API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `HERE API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
-      this.logger.debug(`Search completed successfully, found ${data.items?.length || 0} results`);
+      this.logger.debug(
+        `Search completed successfully, found ${data.items?.length || 0} results`,
+      );
 
       return data;
-
     } catch (error: any) {
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         this.logger.error('Network connectivity issue with HERE API');
@@ -128,33 +137,38 @@ export class HereApiService {
     const params = new URLSearchParams(searchParams);
     const fullUrl = `${this.reverseGeocodeUrl}?${params.toString()}`;
 
-    this.logger.debug(`Making reverse geocode request to: ${this.reverseGeocodeUrl}`);
+    this.logger.debug(
+      `Making reverse geocode request to: ${this.reverseGeocodeUrl}`,
+    );
 
     try {
       const response = await fetch(fullUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'GrandoGo/1.0'
-        }
+          Accept: 'application/json',
+          'User-Agent': 'GrandoGo/1.0',
+        },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`HERE Reverse Geocode API error: ${response.status} - ${errorText}`);
+        this.logger.error(
+          `HERE Reverse Geocode API error: ${response.status} - ${errorText}`,
+        );
 
         if (response.status === 401) {
           throw new Error('Invalid HERE API key or insufficient permissions');
         }
 
-        throw new Error(`HERE API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `HERE API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
       this.logger.debug('Reverse geocoding completed successfully');
 
       return data;
-
     } catch (error: any) {
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         this.logger.error('Network connectivity issue with HERE API');
@@ -175,7 +189,10 @@ export class HereApiService {
 
     // Validation du format des coordonnées (lat,lng)
     const coordPattern = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
-    if (!coordPattern.test(origin.trim()) || !coordPattern.test(destination.trim())) {
+    if (
+      !coordPattern.test(origin.trim()) ||
+      !coordPattern.test(destination.trim())
+    ) {
       throw new Error('Coordinates must be in format "latitude,longitude"');
     }
 
@@ -188,8 +205,8 @@ export class HereApiService {
       transportMode: 'car',
       origin: origin.trim(),
       destination: destination.trim(),
-      return: 'polyline,summary,instructions',
-      departure: 'now',
+      return: 'polyline,summary',
+      // ← Removed 'departure=now' as it's unknown in HERE API v8
     };
 
     const params = new URLSearchParams(searchParams);
@@ -201,23 +218,29 @@ export class HereApiService {
       const response = await fetch(fullUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'GrandoGo/1.0'
-        }
+          Accept: 'application/json',
+          'User-Agent': 'GrandoGo/1.0',
+        },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`HERE Routing API error: ${response.status} - ${errorText}`);
+        this.logger.error(
+          `HERE Routing API error: ${response.status} - ${errorText}`,
+        );
 
         if (response.status === 401) {
           throw new Error('Invalid HERE API key or insufficient permissions');
         }
         if (response.status === 400) {
-          throw new Error('Invalid route parameters - check coordinates format');
+          throw new Error(
+            'Invalid route parameters - check coordinates format',
+          );
         }
 
-        throw new Error(`HERE API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `HERE API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
@@ -230,7 +253,6 @@ export class HereApiService {
       this.logger.debug(`Route calculation completed successfully`);
 
       return data;
-
     } catch (error: any) {
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         this.logger.error('Network connectivity issue with HERE API');

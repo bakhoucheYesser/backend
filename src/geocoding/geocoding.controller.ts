@@ -8,7 +8,7 @@ import {
   Logger,
   HttpException,
   HttpStatus,
-  BadRequestException
+  BadRequestException,
 } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
 import { HereApiService } from './services/here-api.service';
@@ -26,16 +26,22 @@ export class GeocodingController {
     @Query('lat') lat?: string,
     @Query('lng') lng?: string,
   ) {
-    this.logger.debug(`Search request: query="${query}", lat="${lat}", lng="${lng}"`);
+    this.logger.debug(
+      `Search request: query="${query}", lat="${lat}", lng="${lng}"`,
+    );
 
     try {
       // Validation des paramètres
       if (!query || query.trim().length === 0) {
-        throw new BadRequestException('Query parameter "q" is required and cannot be empty');
+        throw new BadRequestException(
+          'Query parameter "q" is required and cannot be empty',
+        );
       }
 
       if (query.trim().length < 2) {
-        throw new BadRequestException('Query must be at least 2 characters long');
+        throw new BadRequestException(
+          'Query must be at least 2 characters long',
+        );
       }
 
       let latitude: number | undefined;
@@ -55,15 +61,22 @@ export class GeocodingController {
         }
 
         if (longitude < -180 || longitude > 180) {
-          throw new BadRequestException('Longitude must be between -180 and 180');
+          throw new BadRequestException(
+            'Longitude must be between -180 and 180',
+          );
         }
       }
 
-      const result = await this.hereApiService.searchPlaces(query.trim(), latitude, longitude);
+      const result = await this.hereApiService.searchPlaces(
+        query.trim(),
+        latitude,
+        longitude,
+      );
 
-      this.logger.debug(`Search successful, returning ${result.items?.length || 0} results`);
+      this.logger.debug(
+        `Search successful, returning ${result.items?.length || 0} results`,
+      );
       return result;
-
     } catch (error) {
       this.logger.error(`Search error: ${error.message}`, error.stack);
 
@@ -74,36 +87,35 @@ export class GeocodingController {
       if (error.message.includes('HERE API key')) {
         throw new HttpException(
           'Geocoding service configuration error',
-          HttpStatus.SERVICE_UNAVAILABLE
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
       if (error.message.includes('Network error')) {
         throw new HttpException(
           'Geocoding service temporarily unavailable',
-          HttpStatus.SERVICE_UNAVAILABLE
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
       throw new HttpException(
         'Failed to search places',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Get('reverse')
   @Public()
-  async reverseGeocode(
-    @Query('lat') lat: string,
-    @Query('lng') lng: string,
-  ) {
+  async reverseGeocode(@Query('lat') lat: string, @Query('lng') lng: string) {
     this.logger.debug(`Reverse geocode request: lat="${lat}", lng="${lng}"`);
 
     try {
       // Validation des paramètres requis
       if (!lat || !lng) {
-        throw new BadRequestException('Both "lat" and "lng" parameters are required');
+        throw new BadRequestException(
+          'Both "lat" and "lng" parameters are required',
+        );
       }
 
       const latitude = parseFloat(lat);
@@ -121,11 +133,13 @@ export class GeocodingController {
         throw new BadRequestException('Longitude must be between -180 and 180');
       }
 
-      const result = await this.hereApiService.reverseGeocode(latitude, longitude);
+      const result = await this.hereApiService.reverseGeocode(
+        latitude,
+        longitude,
+      );
 
       this.logger.debug(`Reverse geocode successful`);
       return result;
-
     } catch (error) {
       this.logger.error(`Reverse geocode error: ${error.message}`, error.stack);
 
@@ -136,20 +150,20 @@ export class GeocodingController {
       if (error.message.includes('HERE API key')) {
         throw new HttpException(
           'Geocoding service configuration error',
-          HttpStatus.SERVICE_UNAVAILABLE
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
       if (error.message.includes('Network error')) {
         throw new HttpException(
           'Geocoding service temporarily unavailable',
-          HttpStatus.SERVICE_UNAVAILABLE
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
       throw new HttpException(
         'Failed to reverse geocode',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -168,7 +182,9 @@ export class GeocodingController {
       const { origin, destination } = body;
 
       if (!origin || !destination) {
-        throw new BadRequestException('Both "origin" and "destination" are required');
+        throw new BadRequestException(
+          'Both "origin" and "destination" are required',
+        );
       }
 
       if (typeof origin !== 'string' || typeof destination !== 'string') {
@@ -183,20 +199,29 @@ export class GeocodingController {
       const coordinateRegex = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
 
       if (!coordinateRegex.test(origin.trim())) {
-        throw new BadRequestException('Origin must be in format "latitude,longitude"');
+        throw new BadRequestException(
+          'Origin must be in format "latitude,longitude"',
+        );
       }
 
       if (!coordinateRegex.test(destination.trim())) {
-        throw new BadRequestException('Destination must be in format "latitude,longitude"');
+        throw new BadRequestException(
+          'Destination must be in format "latitude,longitude"',
+        );
       }
 
-      const result = await this.hereApiService.calculateRoute(origin.trim(), destination.trim());
+      const result = await this.hereApiService.calculateRoute(
+        origin.trim(),
+        destination.trim(),
+      );
 
       this.logger.debug(`Route calculation successful`);
       return result;
-
     } catch (error) {
-      this.logger.error(`Route calculation error: ${error.message}`, error.stack);
+      this.logger.error(
+        `Route calculation error: ${error.message}`,
+        error.stack,
+      );
 
       if (error instanceof BadRequestException) {
         throw error;
@@ -205,20 +230,20 @@ export class GeocodingController {
       if (error.message.includes('HERE API key')) {
         throw new HttpException(
           'Geocoding service configuration error',
-          HttpStatus.SERVICE_UNAVAILABLE
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
       if (error.message.includes('Network error')) {
         throw new HttpException(
           'Geocoding service temporarily unavailable',
-          HttpStatus.SERVICE_UNAVAILABLE
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
 
       throw new HttpException(
         'Failed to calculate route',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -233,7 +258,7 @@ export class GeocodingController {
       service: 'geocoding',
       timestamp: new Date().toISOString(),
       hasApiKey: !!process.env.HERE_API_KEY,
-      apiKeyLength: process.env.HERE_API_KEY?.length || 0
+      apiKeyLength: process.env.HERE_API_KEY?.length || 0,
     };
   }
 }
