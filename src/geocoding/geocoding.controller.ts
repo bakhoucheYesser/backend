@@ -187,10 +187,6 @@ export class GeocodingController {
         );
       }
 
-      if (typeof origin !== 'string' || typeof destination !== 'string') {
-        throw new BadRequestException('Origin and destination must be strings');
-      }
-
       if (origin.trim().length === 0 || destination.trim().length === 0) {
         throw new BadRequestException('Origin and destination cannot be empty');
       }

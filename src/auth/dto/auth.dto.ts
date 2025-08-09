@@ -1,17 +1,55 @@
 import {
   IsEmail,
-  IsNotEmpty,
   IsString,
   MinLength,
+  IsEnum,
+  IsOptional,
   Matches,
+  IsNotEmpty,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
-export class RegisterDto {
+export enum UserRole {
+  CLIENT = 'CLIENT',
+  PROVIDER = 'PROVIDER',
+  DRIVER = 'DRIVER',
+  ADMIN = 'ADMIN',
+}
+
+export class LoginDto {
+  @ApiProperty({
+    example: 'marie.client@email.com',
+    description: "Email de l'utilisateur",
+  })
   @IsEmail({}, { message: 'Email invalide' })
   @Transform(({ value }) => value.toLowerCase().trim())
   email: string;
 
+  @ApiProperty({
+    example: 'password123',
+    description: 'Mot de passe',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Le mot de passe est requis' })
+  password: string;
+
+  @ApiPropertyOptional({
+    enum: UserRole,
+    description: 'Contexte de rôle spécifique pour cette session (optionnel)'
+  })
+  @IsOptional()
+  @IsEnum(UserRole)
+  roleContext?: UserRole;
+}
+
+export class RegisterDto {
+  @ApiProperty({ example: 'marie@email.com' })
+  @IsEmail({}, { message: 'Email invalide' })
+  @Transform(({ value }) => value.toLowerCase().trim())
+  email: string;
+
+  @ApiProperty({ example: 'Tremblay' })
   @IsNotEmpty({ message: 'Le nom est requis' })
   @IsString()
   @MinLength(2, { message: 'Le nom doit contenir au moins 2 caractères' })
@@ -21,6 +59,7 @@ export class RegisterDto {
   })
   nom: string;
 
+  @ApiProperty({ example: 'Marie' })
   @IsNotEmpty({ message: 'Le prénom est requis' })
   @IsString()
   @MinLength(2, { message: 'Le prénom doit contenir au moins 2 caractères' })
@@ -30,34 +69,16 @@ export class RegisterDto {
   })
   prenom: string;
 
+  @ApiProperty({ example: 'password123' })
   @IsNotEmpty({ message: 'Le mot de passe est requis' })
   @IsString()
   @MinLength(8, {
     message: 'Le mot de passe doit contenir au moins 8 caractères',
   })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-    message:
-      'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial',
-  })
   password: string;
-}
 
-export class LoginDto {
-  @IsEmail({}, { message: 'Email invalide' })
-  @Transform(({ value }) => value.toLowerCase().trim())
-  email: string;
-
-  @IsNotEmpty({ message: 'Le mot de passe est requis' })
-  @IsString()
-  password: string;
-}
-
-export class AuthResponse {
-  user: {
-    id: string;
-    email: string;
-    nom: string;
-    prenom: string;
-    role: string;
-  };
+  @ApiPropertyOptional({ enum: UserRole, default: UserRole.CLIENT })
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
 }

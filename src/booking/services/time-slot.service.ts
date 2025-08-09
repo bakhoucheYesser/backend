@@ -153,8 +153,13 @@ export class TimeSlotService {
     // Libérer le créneau
   }
 
-  private calculateDemandLevel(hour: number, bookings: any[]): 'low' | 'medium' | 'high' {
-    const hourBookings = bookings.filter((b) => b.scheduledAt.getHours() === hour);
+  private calculateDemandLevel(
+    hour: number,
+    bookings: any[],
+  ): 'low' | 'medium' | 'high' {
+    const hourBookings = bookings.filter(
+      (b) => b.scheduledAt.getHours() === hour,
+    );
 
     if (hourBookings.length >= 5) return 'high';
     if (hourBookings.length >= 3) return 'medium';
@@ -163,9 +168,12 @@ export class TimeSlotService {
 
   private getSurgeMultiplier(demandLevel: string): number {
     switch (demandLevel) {
-      case 'high': return 1.5;
-      case 'medium': return 1.2;
-      default: return 1.0;
+      case 'high':
+        return 1.5;
+      case 'medium':
+        return 1.2;
+      default:
+        return 1.0;
     }
   }
 }

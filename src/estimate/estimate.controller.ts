@@ -30,12 +30,20 @@ export class EstimateController {
       userLocation?: { lat: number; lng: number };
     },
   ) {
-    return this.estimateService.searchAddresses(searchDto.query, searchDto.userLocation);
+    return this.estimateService.searchAddresses(
+      searchDto.query,
+      searchDto.userLocation,
+    );
   }
 
   @Public()
   @Post('geocode/route')
-  async calculateRoute(@Body() routeDto: { origin: string; destination: string }) {
-    return this.estimateService.calculateRoute(routeDto.origin, routeDto.destination);
+  async calculateRoute(
+    @Body() routeDto: { origin: string; destination: string },
+  ) {
+    return this.estimateService.calculateRoute(
+      routeDto.origin,
+      routeDto.destination,
+    );
   }
 }

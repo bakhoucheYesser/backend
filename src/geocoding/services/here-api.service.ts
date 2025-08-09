@@ -1,6 +1,12 @@
 // src/geocoding/services/here-api.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 
+export interface HereSearchOptions {
+  types?: string;
+  limit?: number;
+  lang?: string;
+}
+
 @Injectable()
 export class HereApiService {
   private readonly logger = new Logger(HereApiService.name);
@@ -8,7 +14,8 @@ export class HereApiService {
 
   // URLs officielles HERE API
   private readonly geocodeUrl = 'https://geocode.search.hereapi.com/v1/geocode';
-  private readonly reverseGeocodeUrl ='https://revgeocode.search.hereapi.com/v1/revgeocode';
+  private readonly reverseGeocodeUrl =
+    'https://revgeocode.search.hereapi.com/v1/revgeocode';
   private readonly routingUrl = 'https://router.hereapi.com/v8/routes';
 
   constructor() {
@@ -31,7 +38,12 @@ export class HereApiService {
     this.logger.log('HERE API key configured successfully');
   }
 
-  async searchPlaces(query: string, lat?: number, lng?: number) {
+  async searchPlaces(
+    query: string,
+    lat?: number,
+    lng?: number,
+    options: HereSearchOptions = {},
+  ) {
     this.logger.debug(`Searching places for query: "${query}"`);
 
     if (!query || query.trim().length === 0) {
@@ -46,23 +58,36 @@ export class HereApiService {
     const searchParams: Record<string, string> = {
       apikey: this.apiKey,
       q: query.trim(),
-      limit: '10',
-      lang: 'en-CA',
+      limit: String(options.limit || 20), // Augmenté pour avoir plus de résultats à filtrer
+      lang: options.lang || 'fr-CA', // Français canadien par défaut
     };
 
-    // Ajouter les coordonnées de l'utilisateur si disponibles
-    if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
-      searchParams.at = `${lat},${lng}`;
-      this.logger.debug(`Using bias location: ${lat},${lng}`);
+    // Paramètres spécifiques pour améliorer la qualité des adresses
+    if (options.types) {
+      searchParams.types = options.types;
     }
 
-    // Limiter la recherche au Canada
+    // Ajouter les coordonnées de l'utilisateur si disponibles pour la proximité
+    if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+      searchParams.at = `${lat},${lng}`;
+      searchParams.bias = 'proximity'; // Favoriser les résultats proches
+      this.logger.debug(`Using bias location: ${lat},${lng}`);
+    } else {
+      // Fallback vers le centre du Québec pour de meilleurs résultats régionaux
+      searchParams.at = '46.8139,-71.2080'; // Québec City
+    }
+
+    // Limiter la recherche au Canada avec focus sur les adresses
     searchParams.in = 'countryCode:CAN';
+
+    // Paramètres pour améliorer la précision des adresses
+    searchParams.show = 'details'; // Plus de détails dans la réponse
 
     const params = new URLSearchParams(searchParams);
     const fullUrl = `${this.geocodeUrl}?${params.toString()}`;
 
     this.logger.debug(`Making request to: ${this.geocodeUrl}`);
+    this.logger.debug(`Request parameters:`, searchParams);
 
     try {
       const response = await fetch(fullUrl, {
@@ -131,7 +156,9 @@ export class HereApiService {
     const searchParams: Record<string, string> = {
       apikey: this.apiKey,
       at: `${lat},${lng}`,
-      lang: 'en-CA',
+      lang: 'fr-CA',
+      types: 'address', // Limiter aux adresses pour le reverse geocoding
+      show: 'details', // Plus de détails pour une meilleure validation
     };
 
     const params = new URLSearchParams(searchParams);
@@ -206,7 +233,7 @@ export class HereApiService {
       origin: origin.trim(),
       destination: destination.trim(),
       return: 'polyline,summary',
-      // ← Removed 'departure=now' as it's unknown in HERE API v8
+      units: 'metric', // Utiliser le système métrique
     };
 
     const params = new URLSearchParams(searchParams);

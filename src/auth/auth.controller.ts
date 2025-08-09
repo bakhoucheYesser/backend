@@ -7,48 +7,71 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, AuthResponse } from './dto/auth.dto';
+import {
+  LoginDto,
+  RegisterDto,
+  UserRole,
+  ClientRegisterDto,
+  ProviderRegisterDto,
+  DriverRegisterDto,
+  AuthResponseDto,
+  RefreshTokenDto
+} from './dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { Roles } from './decorators/roles.decorator';
+import { RolesGuard } from './guards/roles.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Public()
-  @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute
-  async register(
-    @Body() registerDto: RegisterDto,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthResponse> {
-    const result = await this.authService.register(registerDto);
-
-    const { accessToken, refreshToken } = await this.authService.generateTokens(
-      result.user.id,
-    );
-
-    this.authService.setTokensCookies(response, accessToken, refreshToken);
-
-    return result;
-  }
-
+  // ===========================================
+  // 🔐 LOGIN UNIFIÉ POUR TOUS LES RÔLES
+  // ===========================================
   @Public()
   @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives par minute
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     const result = await this.authService.login(loginDto);
 
     const { accessToken, refreshToken } = await this.authService.generateTokens(
       result.user.id,
+      result.user.role,
+    );
+
+    this.authService.setTokensCookies(response, accessToken, refreshToken);
+
+    return {
+      user: result.user,
+      message: `Connexion réussie en tant que ${result.user.role}`,
+    };
+  }
+
+  // ===========================================
+  // 📝 INSCRIPTION CLIENTS
+  // ===========================================
+  @Public()
+  @Post('register/client')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  async registerClient(
+    @Body() registerDto: ClientRegisterDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResponseDto> {
+    const result = await this.authService.registerClient(registerDto);
+
+    const { accessToken, refreshToken } = await this.authService.generateTokens(
+      result.user.id,
+      result.user.role,
     );
 
     this.authService.setTokensCookies(response, accessToken, refreshToken);
@@ -56,6 +79,53 @@ export class AuthController {
     return result;
   }
 
+  // ===========================================
+  // 🏢 INSCRIPTION FOURNISSEURS
+  // ===========================================
+  @Public()
+  @Post('register/provider')
+  @Throttle({ default: { limit: 2, ttl: 60000 } })
+  async registerProvider(
+    @Body() registerDto: ProviderRegisterDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResponseDto> {
+    const result = await this.authService.registerProvider(registerDto);
+
+    const { accessToken, refreshToken } = await this.authService.generateTokens(
+      result.user.id,
+      result.user.role,
+    );
+
+    this.authService.setTokensCookies(response, accessToken, refreshToken);
+
+    return result;
+  }
+
+  // ===========================================
+  // 🚗 INSCRIPTION CONDUCTEURS
+  // ===========================================
+  @Public()
+  @Post('register/driver')
+  @Throttle({ default: { limit: 2, ttl: 60000 } })
+  async registerDriver(
+    @Body() registerDto: DriverRegisterDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResponseDto> {
+    const result = await this.authService.registerDriver(registerDto);
+
+    const { accessToken, refreshToken } = await this.authService.generateTokens(
+      result.user.id,
+      result.user.role,
+    );
+
+    this.authService.setTokensCookies(response, accessToken, refreshToken);
+
+    return result;
+  }
+
+  // ===========================================
+  // 🔄 REFRESH TOKEN
+  // ===========================================
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -78,6 +148,9 @@ export class AuthController {
     return { message: 'Tokens rafraîchis avec succès' };
   }
 
+  // ===========================================
+  // 🚪 DÉCONNEXION
+  // ===========================================
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(
@@ -92,20 +165,56 @@ export class AuthController {
     return { message: 'Déconnexion réussie' };
   }
 
-  @Post('logout-all')
-  @HttpCode(HttpStatus.OK)
-  async logoutAll(
-    @CurrentUser() user: any,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<{ message: string }> {
-    await this.authService.logoutAll(user.id);
-    this.authService.clearTokensCookies(response);
-
-    return { message: 'Déconnexion de tous les appareils réussie' };
+  // ===========================================
+  //  PROFIL UTILISATEUR
+  // ===========================================
+  @Get('me')
+  async getProfile(@CurrentUser() user: any): Promise<{ user: any }> {
+    const fullProfile = await this.authService.getUserProfile(user.id);
+    return { user: fullProfile };
   }
 
-  @Get('me')
-  getProfile(@CurrentUser() user: any): any {
-    return { user };
+  // ===========================================
+  //  CHANGEMENT DE CONTEXTE DE RÔLE
+  // ===========================================
+  @Post('switch-role')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PROVIDER, UserRole.DRIVER) // Seuls ces rôles peuvent changer de contexte
+  async switchRoleContext(
+    @CurrentUser() user: any,
+    @Body('targetRole') targetRole: UserRole,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ message: string }> {
+    // Vérifier que l'utilisateur peut accéder à ce rôle
+    const canSwitch = await this.authService.canSwitchToRole(user.id, targetRole);
+
+    if (!canSwitch) {
+      throw new Error("Vous n'avez pas accès à ce rôle");
+    }
+
+    const { accessToken, refreshToken } = await this.authService.generateTokens(
+      user.id,
+      targetRole,
+    );
+
+    this.authService.setTokensCookies(response, accessToken, refreshToken);
+
+    return {
+      message: `Contexte changé vers ${targetRole}`
+    };
+  }
+
+  // ===========================================
+  //  ADMIN SEULEMENT - Promouvoir utilisateur
+  // ===========================================
+  @Post('admin/promote')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async promoteUser(
+    @Body('userId') userId: string,
+    @Body('newRole') newRole: UserRole,
+  ): Promise<{ message: string }> {
+    await this.authService.updateUserRole(userId, newRole);
+    return { message: `Utilisateur promu au rôle ${newRole}` };
   }
 }

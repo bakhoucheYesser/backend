@@ -4,6 +4,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Request } from 'express';
+import { UserRole } from '../dto';
+
+interface JwtPayload {
+  sub: string;
+  role: UserRole;
+  type: 'access' | 'refresh';
+  iat: number;
+  exp: number;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -21,15 +30,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         (request: Request) => {
           return request?.cookies?.accessToken;
         },
+        ExtractJwt.fromAuthHeaderAsBearerToken(), // Fallback pour API calls
       ]),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: JwtPayload) {
+    if (payload.type !== 'access') {
+      throw new UnauthorizedException('Token type invalide');
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { id: String(payload.sub) },
+      where: { id: payload.sub },
       select: {
         id: true,
         email: true,
@@ -41,9 +55,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user || !user.isActive) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Utilisateur non trouvé ou inactif');
     }
 
-    return user;
+    // Retourner l'utilisateur avec le rôle contextuel du token
+    return {
+      ...user,
+      role: payload.role, // Utiliser le rôle du token pour le contexte
+      contextRole: payload.role,
+    };
   }
 }
