@@ -14,7 +14,7 @@ import {
   FileResponseDto,
   BulkUploadResponseDto,
   FileCategory,
-} from './dto/upload.dto';
+} from './dto';
 
 @Injectable()
 export class UploadService {

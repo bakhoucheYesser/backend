@@ -12,7 +12,7 @@ import {
   UpdateBookingDto,
   BookingResponseDto,
   BookingStatus,
-} from './dto/booking.dto';
+} from './dto';
 
 @Injectable()
 export class BookingService {
