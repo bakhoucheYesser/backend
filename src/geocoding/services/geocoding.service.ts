@@ -71,39 +71,50 @@ export class GeocodingService {
       : this.hasSpecificAddressComponents(address, title, type);
   }
 
+
   /**
    * Vérifie la présence de composants spécifiques dans l'adresse
    */
   private hasSpecificAddressComponents(
-    address: any,
-    title: string,
-    type: string,
+    address:
+      | {
+          houseNumber?: string | null;
+          street?: string | null;
+          city?: string | null;
+        }
+      | null
+      | undefined,
+    title: string | null | undefined,
+    type: string | null | undefined,
   ): boolean {
-    if (!address && !title) return false;
+    const t = typeof title === 'string' ? title.trim() : '';
 
-    const titleHasNumber = /^\d+/.test(title.trim());
-    const invalidTitlePatterns = [
+    if (!address && !t) return false;
+
+    const titleHasNumber: boolean = /^\d+/.test(t);
+
+    const invalidTitlePatterns: RegExp[] = [
       /^(rue|avenue|boulevard|chemin|route|street|road|ave)\s+/i,
       /^(ville de|city of|municipalité de)\s+/i,
       /^[a-zA-ZÀ-ÿ\s\-']+$/,
     ];
 
-    if (invalidTitlePatterns.some((p) => p.test(title)) && !titleHasNumber) {
+    if (t && invalidTitlePatterns.some((p) => p.test(t)) && !titleHasNumber) {
       return false;
     }
 
-    const hasHouseNumber = !!address?.houseNumber?.trim();
-    const hasStreet = !!address?.street?.trim();
-    const hasCity = !!address?.city?.trim();
+    const hasHouseNumber = !!address?.houseNumber?.toString().trim();
+    const hasStreet = !!address?.street?.toString().trim();
+    const hasCity = !!address?.city?.toString().trim();
 
     const isComplete = hasHouseNumber && hasStreet && hasCity;
+
     const isSpecificPlace =
-      type === 'place' &&
-      title &&
-      !invalidTitlePatterns.some((p) => p.test(title));
+      type === 'place' && !!t && !invalidTitlePatterns.some((p) => p.test(t));
 
     return isComplete || titleHasNumber || isSpecificPlace;
   }
+
 
   /**
    * Filtre uniquement les adresses spécifiques
