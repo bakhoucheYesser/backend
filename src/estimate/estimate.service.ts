@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PricingService } from './services/pricing.service';
 import { VehicleService } from './services/vehicle.service';
 import { GeocodeService } from './services/geocode.service';
-import { CreateEstimateDto, EstimateResponseDto } from './dto/estimate.dto';
+import { CreateEstimateDto, EstimateResponseDto } from './dto';
 
 @Injectable()
 export class EstimateService {
