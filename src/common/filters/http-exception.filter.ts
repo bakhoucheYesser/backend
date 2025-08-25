@@ -31,9 +31,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Réponse sécurisée (ne pas exposer les détails en production)
     const isProduction = process.env.NODE_ENV === 'production';
-    const message = isProduction && status >= 500
-      ? 'Une erreur interne est survenue'
-      : exception.message;
+    const message =
+      isProduction && status >= 500
+        ? 'Une erreur interne est survenue'
+        : exception.message;
 
     response.status(status).json({
       statusCode: status,
