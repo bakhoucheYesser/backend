@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PricingService } from './services/pricing.service';
 import { VehicleService } from './services/vehicle.service';
-import { GeocodeService } from './services/geocode.service';
+import { GeocodingService } from '../geocoding/services/geocoding.service';
 import { CreateEstimateDto, EstimateResponseDto } from './dto/estimate.dto';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class EstimateService {
     private prisma: PrismaService,
     private pricingService: PricingService,
     private vehicleService: VehicleService,
-    private geocodeService: GeocodeService,
+    private geocodingService: GeocodingService,
   ) {}
 
   async calculateEstimate(
@@ -22,7 +22,7 @@ export class EstimateService {
     const originString = `${dto.pickup.coordinates.lat},${dto.pickup.coordinates.lng}`;
     const destinationString = `${dto.destination.coordinates.lat},${dto.destination.coordinates.lng}`;
 
-    const route = await this.geocodeService.calculateRoute(
+    const route = await this.geocodingService.calculateRoute(
       originString,
       destinationString,
     );
@@ -79,10 +79,14 @@ export class EstimateService {
     query: string,
     userLocation?: { lat: number; lng: number },
   ) {
-    return this.geocodeService.searchPlaces(query, userLocation);
+    return this.geocodingService.searchPlaces(
+      query,
+      userLocation?.lat,
+      userLocation?.lng,
+    );
   }
 
   async calculateRoute(origin: string, destination: string) {
-    return this.geocodeService.calculateRoute(origin, destination);
+    return this.geocodingService.calculateRoute(origin, destination);
   }
 }

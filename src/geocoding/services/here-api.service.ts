@@ -20,18 +20,37 @@ export class HereApiService {
     this.apiKey = this.config.getOrThrow<string>('here.apiKey');
   }
 
+  // small helper to avoid sending undefined query params
+  private prune<T extends Record<string, unknown>>(obj: T): Partial<T> {
+    const out: Partial<T> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined && v !== null) {
+        (out as any)[k] = v; // safe cast at the edge
+      }
+    }
+    return out;
+  }
+
   async searchPlaces(
     query: string,
     lat?: number,
     lng?: number,
     opts: Record<string, any> = {},
   ) {
-    const params = {
+    const params = this.prune({
       apikey: this.apiKey,
-      q: query,
+      q: query?.trim(),
+      // ✅ restrict results to Canada
+      in: 'countryCode:CAN',
+      // sensible defaults; opts can override if needed
+      lang: 'fr-CA',
+      types: 'address,place',
+      limit: 20,
+      show: 'parsing,streetInfo,postalCodeDetails,countryInfo,tz,secondaryUnitInfo',
       at: lat != null && lng != null ? `${lat},${lng}` : undefined,
       ...opts,
-    };
+    });
+
     const { data } = await firstValueFrom(
       this.http.get(this.geocodeUrl, { params }),
     );
@@ -39,7 +58,14 @@ export class HereApiService {
   }
 
   async reverseGeocode(lat: number, lng: number) {
-    const params = { apikey: this.apiKey, at: `${lat},${lng}` };
+    const params = this.prune({
+      apikey: this.apiKey,
+      at: `${lat},${lng}`,
+      lang: 'fr-CA',
+      types: 'address',
+      show: 'parsing,streetInfo,postalCodeDetails,countryInfo,tz,secondaryUnitInfo',
+    });
+
     const { data } = await firstValueFrom(
       this.http.get(this.reverseUrl, { params }),
     );

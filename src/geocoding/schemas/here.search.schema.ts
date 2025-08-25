@@ -5,15 +5,17 @@ export const HereItem = z.object({
   title: z.string(),
   resultType: z.string(),
   distance: z.number().optional(),
-  address: z.object({
-    label: z.string().optional(),
-    countryCode: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    postalCode: z.string().optional(),
-    houseNumber: z.string().optional(),
-    street: z.string().optional(),
-  }).optional(),
+  address: z
+    .object({
+      label: z.string().optional(),
+      countryCode: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      postalCode: z.string().optional(),
+      houseNumber: z.string().optional(),
+      street: z.string().optional(),
+    })
+    .optional(),
   position: z.object({ lat: z.number(), lng: z.number() }),
 });
 
