@@ -18,7 +18,7 @@ import {
   UpdateBookingDto,
   TimeSlotQueryDto,
   BookingResponseDto,
-} from './dto/booking.dto';
+} from './dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 

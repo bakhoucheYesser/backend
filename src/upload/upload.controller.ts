@@ -26,7 +26,7 @@ import {
   FileResponseDto,
   BulkUploadResponseDto,
   FileCategory,
-} from './dto/upload.dto';
+} from './dto';
 
 @Controller('upload')
 export class UploadController {

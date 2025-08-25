@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { EstimateService } from './estimate.service';
-import { CreateEstimateDto, EstimateResponseDto } from './dto/estimate.dto';
+import { CreateEstimateDto, EstimateResponseDto } from './dto';
 import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('estimate')
