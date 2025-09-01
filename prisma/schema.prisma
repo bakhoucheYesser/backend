@@ -7,9 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =====================================
-// MODÈLES EXISTANTS MODIFIÉS
-// =====================================
+/**
+ * ============================================================
+ * EXISTING MODELS (unchanged unless noted) + NEW MODELS
+ * Notes:
+ * - NEW: ItemType, EstimateItem
+ * - CHANGED: UploadedFile (+estimateItemId), Estimate (+volumeM3, laborMin, movers, breakdown, items[])
+ * ============================================================
+ */
 
 model User {
   id        String   @id @default(cuid())
@@ -117,6 +122,15 @@ model Estimate {
   updatedAt     DateTime       @updatedAt @map("updated_at")
   uploadedFiles UploadedFile[] @relation("EstimateFiles")
 
+  // 🆕 Traces de calcul (ajouts)
+  volumeM3  Decimal? @map("volume_m3") @db.Decimal(7, 2)
+  laborMin  Decimal? @map("labor_min") @db.Decimal(7, 2)
+  movers    Int?     @map("movers")
+  breakdown Json?    @map("breakdown")
+
+  // 🆕 Items (relation inverse)
+  items EstimateItem[]
+
   @@map("estimates")
 }
 
@@ -207,6 +221,61 @@ enum PaymentStatus {
   @@map("PaymentStatus")
 }
 
+/**
+ * ---------------- NEW: ItemType & EstimateItem ----------------
+ */
+
+model ItemType {
+  id               String   @id @default(cuid())
+  category         String
+  type             String
+  label            String
+  defaultVolumeM3  Decimal  @db.Decimal(6, 3)
+  defaultWeightKg  Decimal? @db.Decimal(6, 2)
+  isFragileDefault Boolean  @default(false)
+  isBulkyDefault   Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  estimateItems EstimateItem[]
+
+  @@unique([category, type], name: "category_type")
+  @@map("item_types")
+}
+
+model EstimateItem {
+  id         String   @id @default(cuid())
+  estimateId String   @map("estimate_id")
+  estimate   Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  itemTypeId String?   @map("item_type_id")
+  itemType   ItemType? @relation(fields: [itemTypeId], references: [id])
+
+  category String
+  type     String
+  qty      Int
+
+  Lcm      Decimal? @db.Decimal(7, 2)
+  lcm      Decimal? @db.Decimal(7, 2)
+  Hcm      Decimal? @db.Decimal(7, 2)
+  weightKg Decimal? @db.Decimal(7, 2)
+
+  fragile Boolean @default(false)
+  bulky   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploadedFiles UploadedFile[]
+
+  @@map("estimate_items")
+}
+
+/**
+ * --------------------------------------------------------------
+ */
+
 model UploadedFile {
   id            String  @id @default(cuid())
   filename      String  @unique
@@ -220,6 +289,10 @@ model UploadedFile {
   bookingId     String? @map("booking_id")
   estimateId    String? @map("estimate_id")
   userId        String? @map("user_id")
+
+  // NEW: link photo -> specific EstimateItem (optional)
+  estimateItemId String?       @map("estimate_item_id")
+  estimateItem   EstimateItem? @relation(fields: [estimateItemId], references: [id])
 
   booking  Booking?  @relation("BookingFiles", fields: [bookingId], references: [id], onDelete: Cascade)
   estimate Estimate? @relation("EstimateFiles", fields: [estimateId], references: [id], onDelete: Cascade)

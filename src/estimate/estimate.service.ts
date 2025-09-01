@@ -3,7 +3,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PricingService } from './services/pricing.service';
 import { VehicleService } from './services/vehicle.service';
 import { GeocodingService } from '../geocoding/services/geocoding.service';
-import { CreateEstimateDto, EstimateResponseDto } from './dto/estimate.dto';
+import {
+  CreateEstimateDto,
+  EstimateResponseDto,
+  VehicleTypeId,
+} from './dto/estimate.dto';
 
 @Injectable()
 export class EstimateService {
@@ -28,10 +32,12 @@ export class EstimateService {
     );
 
     // 2. Récupérer les infos du véhicule
-    const vehicle = await this.vehicleService.getVehicleById(dto.vehicleType);
+    const vehicleTypeId = dto.vehicle.vehicleTypeId || VehicleTypeId.pickup; // Default to pickup
+
+    const vehicle = await this.vehicleService.getVehicleById(vehicleTypeId);
 
     if (!vehicle) {
-      throw new Error(`Vehicle type ${dto.vehicleType} not found`);
+      throw new Error(`Vehicle type ${vehicleTypeId} not found`);
     }
 
     // 3. Calculer le prix avec la strategy appropriée
@@ -48,8 +54,8 @@ export class EstimateService {
         pickupCoordinates: `${dto.pickup.coordinates.lat},${dto.pickup.coordinates.lng}`,
         destinationAddress: dto.destination.address,
         destinationCoordinates: `${dto.destination.coordinates.lat},${dto.destination.coordinates.lng}`,
-        vehicleType: dto.vehicleType,
-        distance: route.summary.length, // ✅ FIX: Utiliser route.summary.length au lieu de route.distance
+        vehicleType: vehicleTypeId, // Use the local variable instead of dto.vehicle.vehicleTypeId
+        distance: route.summary.length,
         estimatedDuration: dto.estimatedDuration || 30,
         basePrice: pricing.basePrice,
         laborCost: pricing.laborCost,
@@ -64,9 +70,22 @@ export class EstimateService {
       id: estimate.id,
       pickup: dto.pickup,
       destination: dto.destination,
-      vehicle,
+      vehicle: {
+        id: vehicle.id,
+        displayName: vehicle.displayName,
+        basePrice: Number(vehicle.basePrice),
+        perMinute: Number(vehicle.perMinute),
+        perKm: Number(vehicle.perKm),
+      },
       route,
-      pricing,
+      pricing: {
+        basePrice: pricing.basePrice,
+        laborCost: pricing.laborCost,
+        mileageCost: pricing.mileageCost,
+        bookingFee: pricing.bookingFee,
+        total: pricing.totalPrice, // Map totalPrice to total
+        breakdown: pricing.breakdown,
+      },
       estimatedDuration: dto.estimatedDuration || 30,
     };
   }

@@ -359,12 +359,14 @@ export class AuthService {
     const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
     const cookieDomain = this.configService.get<string>('COOKIE_DOMAIN');
 
+    console.log(`Setting cookies - Production: ${isProduction}, Domain: ${cookieDomain}`);
+
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict' as const,
+      secure: isProduction, // Only secure in production (HTTPS)
+      sameSite: 'lax' as const, // Changed from 'strict' for development
       path: '/',
-      ...(cookieDomain && { domain: cookieDomain }),
+      ...(isProduction && cookieDomain && { domain: cookieDomain }),
     };
 
     response.cookie('accessToken', accessToken, {
@@ -374,13 +376,28 @@ export class AuthService {
 
     response.cookie('refreshToken', refreshToken, {
       ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+
+    console.log('Cookies set successfully');
   }
 
   clearTokensCookies(response: Response): void {
-    response.clearCookie('accessToken', { path: '/' });
-    response.clearCookie('refreshToken', { path: '/' });
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+    const cookieDomain = this.configService.get<string>('COOKIE_DOMAIN');
+
+    const clearOptions = {
+      path: '/',
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+      ...(isProduction && cookieDomain && { domain: cookieDomain }),
+    };
+
+    response.clearCookie('accessToken', clearOptions);
+    response.clearCookie('refreshToken', clearOptions);
+
+    console.log('Cookies cleared successfully');
   }
 
   // ===========================================

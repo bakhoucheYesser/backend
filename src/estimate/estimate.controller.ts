@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { EstimateService } from './estimate.service';
 import { CreateEstimateDto, EstimateResponseDto } from './dto';
 import { Public } from '../auth/decorators/public.decorator';
@@ -9,6 +17,13 @@ export class EstimateController {
 
   @Public()
   @Post('calculate')
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  )
   async calculateEstimate(
     @Body() createEstimateDto: CreateEstimateDto,
   ): Promise<EstimateResponseDto> {
