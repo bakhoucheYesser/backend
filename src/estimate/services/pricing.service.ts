@@ -17,6 +17,7 @@ export interface PricingResult {
   bookingFee: number;
   totalPrice: number;
   breakdown: any;
+  total: any;
 }
 
 @Injectable()
@@ -61,6 +62,7 @@ class StandardPricingStrategy implements PricingStrategy {
       mileageCost,
       bookingFee,
       totalPrice,
+      total: totalPrice, // Add this line
       breakdown: {
         basePrice: `Vehicle base rate: $${basePrice.toFixed(2)}`,
         laborCost: `Labor (${estimatedDuration} min): $${laborCost.toFixed(2)}`,

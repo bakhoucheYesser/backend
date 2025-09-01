@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Get,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Response, Request } from 'express';
@@ -133,19 +134,32 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
-    const refreshToken = request.cookies?.refreshToken;
+    try {
+      const refreshToken = request.cookies?.refreshToken;
 
-    if (!refreshToken) {
+      if (!refreshToken) {
+        this.authService.clearTokensCookies(response);
+        throw new UnauthorizedException('Token de rafraîchissement manquant');
+      }
+
+      const { accessToken, refreshToken: newRefreshToken } =
+        await this.authService.refreshTokens(refreshToken);
+
+      this.authService.setTokensCookies(response, accessToken, newRefreshToken);
+
+      return { message: 'Tokens rafraîchis avec succès' };
+    } catch (error) {
+      // Clear cookies on any refresh error
       this.authService.clearTokensCookies(response);
-      throw new Error('Token de rafraîchissement manquant');
+
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      // Log the actual error for debugging
+      console.error('Refresh token error:', error);
+      throw new UnauthorizedException('Token de rafraîchissement invalide');
     }
-
-    const { accessToken, refreshToken: newRefreshToken } =
-      await this.authService.refreshTokens(refreshToken);
-
-    this.authService.setTokensCookies(response, accessToken, newRefreshToken);
-
-    return { message: 'Tokens rafraîchis avec succès' };
   }
 
   // ===========================================
