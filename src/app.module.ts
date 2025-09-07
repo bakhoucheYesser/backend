@@ -10,7 +10,6 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { GeocodingModule } from './geocoding/geocoding.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard'; // ✅ AJOUTÉ
 import { EstimateModule } from './estimate/estimate.module';
 import { UploadModule } from './upload/upload.module';
 import { BookingModule } from './booking/booking.module';
@@ -50,18 +49,17 @@ import { BookingModule } from './booking/booking.module';
   controllers: [AppController],
   providers: [
     AppService,
+    // ORDRE IMPORTANT : ThrottlerGuard en premier
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    // JwtAuthGuard en second (gère @Public())
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard, // ✅ AJOUTÉ - Guard global pour les rôles
-    },
+    // RolesGuard supprimé d'ici - sera utilisé avec @UseGuards() là où nécessaire
   ],
 })
 export class AppModule {}
